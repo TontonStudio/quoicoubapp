@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Quoicoubapp</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#306230">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="./assets/images/icon.png">
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #c4cfa1;
+            color: #306230;
+            overscroll-behavior: none; /* Empêche le pull-to-refresh sur mobile */
+            touch-action: manipulation; /* Améliore la réactivité tactile */
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        h1 {
+            color: #0f380f;
+            margin-bottom: 30px;
+            font-size: 2rem;
+        }
+        
+        .status {
+            font-size: 18px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        .button {
+            background-color: #8bac0f;
+            color: white;
+            border: none;
+            padding: 18px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            min-width: 200px;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            /* Éviter la sélection de texte */
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        .button:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        
+        .button.stop {
+            background-color: #ac0f0f;
+        }
+        
+        .result-box {
+            background-color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            min-height: 50px;
+        }
+        
+        .instructions {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: left;
+        }
+        
+        .instructions h2 {
+            margin-top: 0;
+            color: #306230;
+        }
+        
+        .instructions p {
+            margin: 10px 0;
+            color: #0f380f;
+            font-size: 16px;
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                width: 95%;
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+                margin-bottom: 20px;
+            }
+            
+            .button {
+                width: 90%;
+                font-size: 16px;
+                padding: 16px 10px;
+            }
+            
+            .instructions p {
+                font-size: 14px;
+                margin: 8px 0;
+            }
+        }
+        
+        /* Animation pour la rétroaction tactile */
+        @keyframes buttonPress {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.98); }
+            100% { transform: scale(1); }
+        }
+        
+        .button:active {
+            animation: buttonPress 0.2s;
+        }
+        
+        /* Indicateur d'activité pour montrer que l'app écoute */
+        .listening-indicator {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: red;
+            margin-left: 10px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        
+        /* Style pour montrer le son en cours de lecture */
+        #currentSound {
+            font-size: 12px;
+            color: #555;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Quoicoubapp</h1>
+        
+        <div class="status" id="status">
+            En attente
+            <span id="indicator" class="listening-indicator" style="display: none;"></span>
+        </div>
+        
+        <div id="currentSound" style="display:none;"></div>
+        
+        <button class="button" id="listenButton">Commencer l'écoute</button>
+        
+        <p style="font-weight: bold; color: #306230; margin: 10px 0;">Mode automatique: arrêt de l'écoute lors de la détection d'un mot, lecture du son, puis reprise de l'écoute</p>
+        
+        <!-- Zone de résultat masquée -->
+        <div class="result-box" id="result" style="display:none;"></div>
+        
+        <div class="instructions">
+            <h2>Instructions :</h2>
+            <p>1. Appuie sur "Commencer l'écoute"</p>
+            <p>2. Dis "Quoi ?" pour entendre "Quoicoubeh"</p>
+            <p>3. Dis "Hein ?" (ou un mot finissant par "in") pour entendre "Apanyan"</p>
+            <p>4. Dis "Pourquoi ?" pour entendre "Carabinga"</p>
+            <p>5. Dis "Comment ?" pour entendre "Commandant de bord"</p>
+            <p>6. Dis "Qui ?" pour entendre "Quiquiriqui"</p>
+            <p>7. Appuie sur "Arrêter l'écoute" quand tu as terminé</p>
+        </div>
+    </div>
+
+    <!-- Conteneur audio pour jouer les sons -->
+    <audio id="soundPlayer"></audio>
+    
+    <script>
+        // Désactiver temporairement le service worker pour le développement
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Empêcher le défilement de l'écran lors du tap sur les boutons
+            document.addEventListener('touchmove', function(e) {
+                if (e.target.tagName === 'BUTTON') {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+            
+            const listenButton = document.getElementById('listenButton');
+            const statusElement = document.getElementById('status');
+            const resultElement = document.getElementById('result');
+            const indicatorElement = document.getElementById('indicator');
+            const soundPlayer = document.getElementById('soundPlayer');
+            const currentSoundElement = document.getElementById('currentSound');
+            
+            // Variables pour la reconnaissance vocale
+            let recognition;
+            let isListening = false;
+            let isSoundPlaying = false;
+            
+            // Fonction de débogage - uniquement dans la console
+            function log(message) {
+                console.log(message);
+            }
+            
+            // Variable pour éviter les détections en double
+            let lastProcessedText = '';
+            
+            // Mapping des mots-clés vers les dossiers de sons
+            const soundMapping = {
+                'quoi': 'quoicoubeh',
+                'hein': 'apanyans',
+                'pourquoi': 'pourquoicarabinga',
+                'comment': 'commandantdebord',
+                'qui': 'quiquiriqui'
+            };
+            
+            // Définition directe des sons disponibles pour chaque mot-clé
+            const availableSounds = {
+                'quoi': [
+                    './sounds/quoicoubeh/quoicoubeh1.mp3',
+                    './sounds/quoicoubeh/quoicoubeh2.mp3',
+                    './sounds/quoicoubeh/quoicoubeh3.mp3',
+                    './sounds/quoicoubeh/quoicoubeh4.mp3',
+                    './sounds/quoicoubeh/quoicoubeh5.mp3',
+                    './sounds/quoicoubeh/quoicoubeh6.mp3',
+                    './sounds/quoicoubeh/quoicoubeh7.mp3'
+                ],
+                'hein': [
+                    './sounds/apanyans/apanyan1.mp3',
+                    './sounds/apanyans/apanyan2.mp3',
+                    './sounds/apanyans/apanyan3.mp3',
+                    './sounds/apanyans/apanyan4.mp3',
+                    './sounds/apanyans/apanyan5.mp3',
+                    './sounds/apanyans/apanyan6.mp3',
+                    './sounds/apanyans/apanyan7.mp3',
+                    './sounds/apanyans/apanyan8.mp3',
+                    './sounds/apanyans/apanyan9.mp3',
+                    './sounds/apanyans/apanyan10.mp3'
+                ],
+                'pourquoi': [
+                    './sounds/pourquoicarabinga/pourquoicarabinga.mp3'
+                ],
+                'comment': [
+                    './sounds/commandantdebord/commandantdebord.mp3'
+                ],
+                'qui': [
+                    './sounds/quiquiriqui/quiquiriqui1.mp3'
+                ]
+            };
+            
+            // Variable pour indiquer si l'écoute est désactivée manuellement
+            let manuallyDisabled = false;
+            
+            // Gestion du vibreur pour donner un feedback tactile (si disponible)
+            function vibrateIfAvailable(pattern) {
+                if (navigator.vibrate) {
+                    navigator.vibrate(pattern);
+                }
+            }
+            
+            // Fonction pour obtenir un son aléatoire pour un mot-clé
+            function getRandomSound(keyword) {
+                const sounds = availableSounds[keyword] || [];
+                if (sounds.length === 0) {
+                    // Fallback si aucun son n'est trouvé
+                    return `./sounds/${soundMapping[keyword]}/${soundMapping[keyword]}.mp3`;
+                }
+                
+                const randomIndex = Math.floor(Math.random() * sounds.length);
+                return sounds[randomIndex];
+            }
+            
+            // Charger un échantillon de chaque son pour s'assurer qu'ils sont disponibles
+            function preloadSounds() {
+                Object.keys(availableSounds).forEach(keyword => {
+                    const sounds = availableSounds[keyword];
+                    if (sounds && sounds.length > 0) {
+                        // Précharger le premier son de chaque catégorie
+                        const audio = new Audio();
+                        audio.src = sounds[0];
+                        audio.preload = 'auto';
+                        log(`Préchargement de ${sounds[0]}`);
+                    }
+                });
+            }
+            
+            // Précharger les sons au démarrage
+            preloadSounds();
+            
+            // Gestion du bouton d'écoute avec feedback tactile
+            listenButton.addEventListener('click', function() {
+                vibrateIfAvailable(20); // Vibration courte au clic
+                
+                if (isListening) {
+                    manuallyDisabled = true;
+                    stopListening();
+                    log("Écoute désactivée manuellement");
+                } else {
+                    manuallyDisabled = false;
+                    startListening();
+                    log("Écoute activée manuellement");
+                }
+            });
+            
+            // Démarrer l'écoute
+            function startListening() {
+                // Ne pas démarrer si un son est en cours de lecture
+                if (isSoundPlaying) {
+                    log('Un son est en cours de lecture, attente avant de reprendre l\'écoute');
+                    return;
+                }
+                
+                try {
+                    // Initialiser directement la reconnaissance sans vérification de permission
+                    // Cette approche simplifie la gestion des permissions et évite les demandes répétées
+                    initializeRecognition();
+                } catch (error) {
+                    log("Erreur lors du démarrage de la reconnaissance vocale: " + error.message);
+                    statusElement.textContent = "Erreur de démarrage de l'écoute";
+                    indicatorElement.style.display = 'none';
+                }
+            }
+            
+            function initializeRecognition() {
+                try {
+                    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                    recognition.continuous = true;
+                    recognition.interimResults = true;
+                    recognition.lang = 'fr-FR';
+                    
+                    // Réaffecter les gestionnaires d'événements
+                    recognition.onresult = function(event) {
+                        let interimTranscript = '';
+                        
+                        for (let i = event.resultIndex; i < event.results.length; i++) {
+                            const transcript = event.results[i][0].transcript.toLowerCase();
+                            log('Transcription: ' + transcript);
+                            resultElement.textContent = transcript;
+                            
+                            // Vérification des mots déclencheurs - ORDRE IMPORTANT
+                            // "pourquoi" doit être vérifié avant "quoi" pour éviter les faux positifs
+                            if (transcript.includes('pourquoi')) {
+                                log('MOT CLÉ DÉTECTÉ: pourquoi');
+                                recognition.stop();
+                                isListening = false;
+                                indicatorElement.style.display = 'none';
+                                vibrateIfAvailable([50, 50, 100]); // Motif de vibration distinctif
+                                playSound('pourquoi');
+                                return; // Sortir complètement
+                            } 
+                            // "qui" doit être vérifié avant "quoi" pour éviter les faux positifs
+                            else if (transcript.includes(' qui') || transcript === 'qui') {
+                                log('MOT CLÉ DÉTECTÉ: qui');
+                                recognition.stop();
+                                isListening = false;
+                                indicatorElement.style.display = 'none';
+                                vibrateIfAvailable([50, 100, 50]); // Motif de vibration distinctif
+                                playSound('qui');
+                                return; // Sortir complètement
+                            }
+                            // Détection du mot "comment" avec une vérification plus stricte
+                            else if (transcript.includes('comment') && !transcript.includes('commandant')) {
+                                // Après détection, on mémorise qu'on a détecté ce mot pour éviter les doublons
+                                if (lastProcessedText !== transcript) {
+                                    lastProcessedText = transcript;
+                                    log('MOT CLÉ DÉTECTÉ: comment');
+                                    recognition.stop();
+                                    isListening = false;
+                                    indicatorElement.style.display = 'none';
+                                    vibrateIfAvailable([50, 100, 50]); // Motif de vibration distinctif
+                                    playSound('comment');
+                                    return; // Sortir complètement
+                                }
+                            }
+                            // Vérification pour les mots qui déclenchent le son "apanyan"
+                            else if (
+                                // Le mot exact "hein"
+                                transcript.includes('hein') || 
+                                
+                                // Ajout de "un" et "ben" comme demandé
+                                transcript.includes('un') ||
+                                transcript.includes('ben') ||
+                                
+                                // Ajout du chiffre "1"
+                                transcript.includes('1') ||
+                                
+                                // Mots se terminant par "bah"
+                                /(\s|^)(\w+bah)(\s|$|\.|\?|\!)/i.test(transcript) ||
+                                
+                                // Mots se terminant strictement par le son nasal "in"
+                                /(\s|^)(fin|vin|lin|pin|brin|train|main|pain|plein|sein|frein|teint|daim|faim|rein|saint|grain|bain|gain|nain)(\s|$|\.|\?|\!)/i.test(transcript) ||
+                                
+                                // Autres mots courants se terminant par le son nasal "in"
+                                /(\s|^)(bien|rien|chien|mien|tien|sien|loin|soin|coin|besoin|terrain|demain|lendemain|prochain|cousin|voisin|matin|malin|butin|poulain)(\s|$|\.|\?|\!)/i.test(transcript)
+                            ) {
+                                log('MOT CLÉ DÉTECTÉ: hein (son similaire)');
+                                recognition.stop();
+                                isListening = false;
+                                indicatorElement.style.display = 'none';
+                                vibrateIfAvailable([100, 50, 50]); // Motif de vibration distinctif
+                                playSound('hein');
+                                return; // Sortir complètement
+                            } else if (transcript.includes('quoi')) {
+                                log('MOT CLÉ DÉTECTÉ: quoi');
+                                recognition.stop();
+                                isListening = false;
+                                indicatorElement.style.display = 'none';
+                                vibrateIfAvailable([50, 50, 50, 50]); // Motif de vibration distinctif
+                                playSound('quoi');
+                                return; // Sortir complètement
+                            }
+                        }
+                    };
+                    
+                    recognition.onerror = function(event) {
+                        log("Erreur de reconnaissance vocale: " + event.error);
+                        statusElement.textContent = `Erreur: ${event.error}`;
+                        indicatorElement.style.display = 'none';
+                        
+                        isListening = false;
+                        setTimeout(startListening, 1000);
+                    };
+                    
+                    recognition.onend = function() {
+                        log('Fin de session de reconnaissance vocale');
+                        
+                        // Ne redémarrer que si l'écoute n'a pas été désactivée manuellement
+                        if (isListening && !manuallyDisabled) {
+                            setTimeout(function() {
+                                try {
+                                    recognition.start();
+                                    log('Reconnaissance redémarrée après fin');
+                                } catch (e) {
+                                    log('Erreur lors du redémarrage: ' + e.message);
+                                    indicatorElement.style.display = 'none';
+                                }
+                            }, 500);
+                        } else if (manuallyDisabled) {
+                            log('Redémarrage automatique désactivé (arrêt manuel)');
+                            indicatorElement.style.display = 'none';
+                        }
+                    };
+                    
+                    // Gérer l'événement d'audiostart pour l'UX
+                    recognition.onaudiostart = function() {
+                        log('Début de la capture audio');
+                        // Montrer visuellement que nous écoutons
+                        indicatorElement.style.display = 'inline-block';
+                    };
+                    
+                    recognition.start();
+                    isListening = true;
+                    statusElement.textContent = "Écoute en cours...";
+                    indicatorElement.style.display = 'inline-block';
+                    listenButton.textContent = "Arrêter l'écoute";
+                    listenButton.classList.add('stop');
+                    log('Reconnaissance vocale démarrée');
+                } catch (error) {
+                    log("Erreur lors du démarrage de la reconnaissance vocale: " + error.message);
+                    statusElement.textContent = "Erreur de démarrage de l'écoute";
+                    indicatorElement.style.display = 'none';
+                    
+                    // Gestion spécifique des erreurs mobiles
+                    if (error.message.includes('permission') || error.message.includes('Permission')) {
+                        statusElement.textContent = "Autorisez l'accès au micro (vérifiez les paramètres)";
+                    }
+                }
+            }
+            
+            // Arrêter l'écoute
+            function stopListening() {
+                try {
+                    if (recognition) {
+                        recognition.stop();
+                    }
+                    isListening = false;
+                    indicatorElement.style.display = 'none';
+                    
+                    // Mettre à jour l'interface selon le contexte
+                    if (manuallyDisabled || !isSoundPlaying) {
+                        statusElement.textContent = "En attente";
+                        listenButton.textContent = "Commencer l'écoute";
+                        listenButton.classList.remove('stop');
+                    }
+                    
+                    log('Reconnaissance vocale arrêtée');
+                } catch (error) {
+                    log("Erreur lors de l'arrêt de la reconnaissance vocale: " + error.message);
+                }
+            }
+            
+            // Jouer un son
+            function playSound(trigger) {
+                // Si un son est déjà en cours de lecture, ne pas en jouer un autre
+                if (isSoundPlaying) {
+                    log('Un son est déjà en cours de lecture, ignoré: ' + trigger);
+                    return;
+                }
+                
+                log('Demande de lecture du son: ' + trigger);
+                
+                try {
+                    // Sélectionner aléatoirement un son
+                    const soundPath = getRandomSound(trigger);
+                    log(`Son sélectionné: ${soundPath}`);
+                    
+                    // Afficher le son en cours de lecture (pour debug)
+                    currentSoundElement.textContent = `Son: ${soundPath}`;
+                    currentSoundElement.style.display = 'block';
+                    
+                    isSoundPlaying = true;
+                    statusElement.textContent = "Lecture du son en cours...";
+                    
+                    // Configurer le lecteur audio
+                    soundPlayer.src = soundPath;
+                    
+                    // Définir l'événement de fin
+                    soundPlayer.onended = function() {
+                        log('Son terminé: ' + trigger);
+                        isSoundPlaying = false;
+                        currentSoundElement.style.display = 'none';
+                        
+                        // Réinitialiser la dernière transcription traitée
+                        lastProcessedText = '';
+                        
+                        // Ne redémarrer l'écoute que si l'app n'a pas été désactivée manuellement
+                        if (!manuallyDisabled) {
+                            setTimeout(function() {
+                                startListening();
+                            }, 500); // Ajout d'un délai pour éviter les détections en chaîne
+                        } else {
+                            log('Pas de redémarrage automatique (arrêt manuel)');
+                            statusElement.textContent = "En attente";
+                        }
+                    };
+                    
+                    // Gérer les erreurs audio
+                    soundPlayer.onerror = function(e) {
+                        log('Erreur de lecture audio: ' + (e.message || 'Son non trouvé'));
+                        isSoundPlaying = false;
+                        lastProcessedText = '';
+                        currentSoundElement.style.display = 'none';
+                        
+                        if (!manuallyDisabled) {
+                            setTimeout(function() {
+                                startListening();
+                            }, 500);
+                        }
+                    };
+                    
+                    // Lecture du son
+                    let playPromise = soundPlayer.play();
+                    if (playPromise !== undefined) {
+                        playPromise
+                            .then(() => {
+                                log('Lecture du son réussie: ' + soundPath);
+                            })
+                            .catch(e => {
+                                log('Erreur de lecture audio: ' + e.message);
+                                isSoundPlaying = false;
+                                lastProcessedText = '';
+                                currentSoundElement.style.display = 'none';
+                                
+                                // Gestion spécifique des erreurs de lecture sur mobile
+                                if (e.name === 'NotAllowedError') {
+                                    statusElement.textContent = "Interaction utilisateur requise pour lire le son";
+                                    // Sur certains navigateurs mobiles, l'audio ne peut être joué qu'après une interaction utilisateur
+                                    // Nous pouvons proposer un bouton pour jouer le son manuellement
+                                    listenButton.textContent = "Appuyer pour activer le son";
+                                } else {
+                                    // Essayer de relancer l'écoute en cas d'erreur
+                                    if (!manuallyDisabled) {
+                                        setTimeout(function() {
+                                            startListening();
+                                        }, 500);
+                                    }
+                                }
+                            });
+                    }
+                } catch (error) {
+                    log('Erreur lors de la lecture du son: ' + error.message);
+                    isSoundPlaying = false;
+                    lastProcessedText = '';
+                    currentSoundElement.style.display = 'none';
+                    if (!manuallyDisabled) {
+                        setTimeout(function() {
+                            startListening();
+                        }, 500);
+                    }
+                }
+            }
+            
+            // Vérification pour l'ouverture dans une WebView Android ou une PWA installée
+            function checkInstalledPWA() {
+                // Vérifier si l'application est lancée depuis l'écran d'accueil ou en mode standalone
+                if (window.matchMedia('(display-mode: standalone)').matches || 
+                    window.navigator.standalone === true) {
+                    log('Application lancée en mode PWA installée');
+                    // Possibilité d'adapter l'interface ici pour les PWA installées
+                }
+                
+                // Vérifier si nous sommes dans une WebView Android
+                const userAgent = navigator.userAgent.toLowerCase();
+                if (userAgent.indexOf('android') > -1 && userAgent.indexOf('wv') > -1) {
+                    log('Application lancée dans une WebView Android');
+                    // Optimisations spécifiques pour WebView si nécessaire
+                }
+            }
+            
+            // Appeler la vérification au chargement
+            checkInstalledPWA();
+            
+            // Gérer les événements de visibilité pour une meilleure gestion des ressources
+            document.addEventListener('visibilitychange', function() {
+                if (document.hidden) {
+                    // L'application est en arrière-plan ou minimisée
+                    if (isListening) {
+                        log('App en arrière-plan, arrêt temporaire de l\'écoute');
+                        stopListening();
+                    }
+                } else {
+                    // L'application est de nouveau visible
+                    if (!manuallyDisabled && !isSoundPlaying) {
+                        log('App de nouveau visible, reprise de l\'écoute');
+                        startListening();
+                    }
+                }
+            });
+            
+            // Log initial
+            log('Application Quoicoubapp (PWA) initialisée avec support de sons aléatoires');
+        });
+    </script>
+</body>
+</html>

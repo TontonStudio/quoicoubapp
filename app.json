@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "Quoicoubapp",
+    "slug": "quoicoubapp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "quoicoubapp",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#c4cfa1"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Cette application a besoin d'accéder à votre microphone pour détecter les mots clés et jouer les sons appropriés.",
+        "NSSpeechRecognitionUsageDescription": "Cette application utilise la reconnaissance vocale pour détecter les mots 'Quoi', 'Hein' et 'Pourquoi'."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#c4cfa1"
+      },
+      "package": "com.tontonstudio.quoicoubapp",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.INTERNET"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-speech",
+        {
+          "microphonePermission": "Autorisez l'accès au microphone pour utiliser la détection vocale"
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Autorisez l'accès au microphone pour utiliser la détection vocale"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

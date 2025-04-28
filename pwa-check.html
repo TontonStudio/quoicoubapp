@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vérification PWA Quoicoubapp</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #306230;
+        }
+        .test-group {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: white;
+        }
+        .test {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .test.success {
+            background-color: #e6ffe6;
+        }
+        .test.fail {
+            background-color: #ffebee;
+        }
+        .status {
+            font-weight: bold;
+            display: inline-block;
+            padding: 3px 6px;
+            border-radius: 3px;
+            color: white;
+        }
+        .success .status {
+            background-color: #4CAF50;
+        }
+        .fail .status {
+            background-color: #F44336;
+        }
+        button {
+            background-color: #8bac0f;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #9bbc0f;
+        }
+        code {
+            background-color: #f5f5f5;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>Vérification de la configuration PWA Quoicoubapp</h1>
+    <p>Cette page vérifie si votre application est correctement configurée pour PWA Builder.</p>
+    
+    <div class="test-group">
+        <h2>1. Vérification du manifeste</h2>
+        <div id="manifest-test" class="test">Vérification du manifeste...</div>
+        <div id="manifest-id-test" class="test">Vérification de l'ID...</div>
+        <div id="manifest-start-url-test" class="test">Vérification de start_url...</div>
+        <div id="manifest-icons-test" class="test">Vérification des icônes...</div>
+        <div id="manifest-screenshots-test" class="test">Vérification des captures d'écran...</div>
+    </div>
+    
+    <div class="test-group">
+        <h2>2. Vérification du Service Worker</h2>
+        <div id="sw-support-test" class="test">Vérification du support du Service Worker...</div>
+        <div id="sw-registration-test" class="test">Vérification de l'enregistrement du Service Worker...</div>
+    </div>
+    
+    <div class="test-group">
+        <h2>3. Vérification des ressources</h2>
+        <div id="images-test" class="test">Vérification des images...</div>
+        <div id="audio-test" class="test">Vérification des fichiers audio...</div>
+    </div>
+    
+    <div class="test-group">
+        <h2>4. Vérification du contenu mixte</h2>
+        <div id="mixed-content-test" class="test">Recherche de contenu mixte...</div>
+    </div>
+    
+    <button id="run-tests">Exécuter les tests</button>
+    
+    <script>
+        document.getElementById('run-tests').addEventListener('click', runAllTests);
+        
+        async function runAllTests() {
+            // Test du manifeste
+            testManifest();
+            
+            // Test du Service Worker
+            testServiceWorker();
+            
+            // Test des ressources
+            testResources();
+            
+            // Test du contenu mixte
+            testMixedContent();
+        }
+        
+        async function testManifest() {
+            try {
+                const manifestResponse = await fetch('manifest.json');
+                if (!manifestResponse.ok) {
+                    setTestResult('manifest-test', false, 'Le fichier manifest.json n\'a pas pu être chargé');
+                    return;
+                }
+                
+                const manifest = await manifestResponse.json();
+                setTestResult('manifest-test', true, 'Manifeste chargé avec succès');
+                
+                // Vérifier l'ID
+                if (manifest.id && manifest.id.length > 0) {
+                    setTestResult('manifest-id-test', true, `ID trouvé: ${manifest.id}`);
+                } else {
+                    setTestResult('manifest-id-test', false, 'ID manquant ou vide dans le manifeste');
+                }
+                
+                // Vérifier start_url
+                if (manifest.start_url && !manifest.start_url.startsWith('/')) {
+                    setTestResult('manifest-start-url-test', true, `start_url relatif trouvé: ${manifest.start_url}`);
+                } else {
+                    setTestResult('manifest-start-url-test', false, 'start_url manquant ou utilise un chemin absolu');
+                }
+                
+                // Vérifier les icônes
+                if (manifest.icons && manifest.icons.length > 0) {
+                    const iconsWithPurpose = manifest.icons.filter(icon => icon.purpose);
+                    setTestResult('manifest-icons-test', true, `${manifest.icons.length} icônes trouvées, ${iconsWithPurpose.length} avec purpose`);
+                } else {
+                    setTestResult('manifest-icons-test', false, 'Icônes manquantes dans le manifeste');
+                }
+                
+                // Vérifier les captures d'écran
+                if (manifest.screenshots && manifest.screenshots.length > 0) {
+                    setTestResult('manifest-screenshots-test', true, `${manifest.screenshots.length} captures d'écran trouvées`);
+                } else {
+                    setTestResult('manifest-screenshots-test', false, 'Captures d\'écran manquantes dans le manifeste');
+                }
+                
+            } catch (error) {
+                setTestResult('manifest-test', false, `Erreur lors du chargement du manifeste: ${error.message}`);
+            }
+        }
+        
+        async function testServiceWorker() {
+            // Vérifier si le navigateur supporte Service Worker
+            if ('serviceWorker' in navigator) {
+                setTestResult('sw-support-test', true, 'Le navigateur supporte Service Worker');
+                
+                try {
+                    // Vérifier si le Service Worker est enregistré
+                    const registration = await navigator.serviceWorker.getRegistration();
+                    if (registration) {
+                        setTestResult('sw-registration-test', true, `Service Worker enregistré: ${registration.scope}`);
+                    } else {
+                        setTestResult('sw-registration-test', false, 'Service Worker non enregistré');
+                    }
+                } catch (error) {
+                    setTestResult('sw-registration-test', false, `Erreur lors de la vérification du Service Worker: ${error.message}`);
+                }
+            } else {
+                setTestResult('sw-support-test', false, 'Le navigateur ne supporte pas Service Worker');
+                setTestResult('sw-registration-test', false, 'Test impossible - Service Worker non supporté');
+            }
+        }
+        
+        async function testResources() {
+            // Tester les images
+            try {
+                const imageTests = [
+                    fetch('assets/images/icon.png'),
+                    fetch('assets/images/adaptive-icon.png'),
+                    fetch('assets/images/screenshot1.svg')
+                ];
+                
+                const results = await Promise.allSettled(imageTests);
+                const successCount = results.filter(result => result.status === 'fulfilled' && result.value.ok).length;
+                
+                if (successCount === imageTests.length) {
+                    setTestResult('images-test', true, `Toutes les images (${successCount}/${imageTests.length}) sont accessibles`);
+                } else {
+                    setTestResult('images-test', false, `Certaines images ne sont pas accessibles (${successCount}/${imageTests.length})`);
+                }
+            } catch (error) {
+                setTestResult('images-test', false, `Erreur lors du test des images: ${error.message}`);
+            }
+            
+            // Tester les fichiers audio
+            try {
+                const audioTests = [
+                    fetch('sounds/quoicoubeh.mp3'),
+                    fetch('sounds/apanyan.mp3'),
+                    fetch('sounds/pourquoicarabinga.mp3'),
+                    fetch('sounds/commandantdebord.mp3')
+                ];
+                
+                const results = await Promise.allSettled(audioTests);
+                const successCount = results.filter(result => result.status === 'fulfilled' && result.value.ok).length;
+                
+                if (successCount === audioTests.length) {
+                    setTestResult('audio-test', true, `Tous les fichiers audio (${successCount}/${audioTests.length}) sont accessibles`);
+                } else {
+                    setTestResult('audio-test', false, `Certains fichiers audio ne sont pas accessibles (${successCount}/${audioTests.length})`);
+                }
+            } catch (error) {
+                setTestResult('audio-test', false, `Erreur lors du test des fichiers audio: ${error.message}`);
+            }
+        }
+        
+        async function testMixedContent() {
+            // Examiner les balises avec des références externes
+            const mixedContentElements = document.querySelectorAll('a[href^="http:"], img[src^="http:"], script[src^="http:"], link[href^="http:"], audio[src^="http:"], video[src^="http:"]');
+            
+            if (mixedContentElements.length === 0) {
+                setTestResult('mixed-content-test', true, 'Aucun contenu mixte détecté dans le document actuel');
+            } else {
+                setTestResult('mixed-content-test', false, `${mixedContentElements.length} éléments avec contenu mixte détectés`);
+            }
+        }
+        
+        function setTestResult(elementId, success, message) {
+            const element = document.getElementById(elementId);
+            element.className = success ? 'test success' : 'test fail';
+            element.innerHTML = `<span class="status">${success ? 'OK' : 'ÉCHEC'}</span> ${message}`;
+        }
+    </script>
+</body>
+</html>
