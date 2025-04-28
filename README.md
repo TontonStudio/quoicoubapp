@@ -72,6 +72,14 @@ L'application est configurée comme une PWA, ce qui permet :
 - Le fonctionnement hors ligne grâce au service worker
 - La création d'APK Android via PWA Builder
 
+## Version Flutter (Branche séparée)
+
+Une version Flutter de cette application est également disponible sur la branche `flutter`. Pour plus d'informations sur Flutter :
+
+- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
+- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- [Flutter documentation](https://docs.flutter.dev/)
+
 ## Développé par
 
 [Tonton Studio](https://github.com/TontonStudio)
