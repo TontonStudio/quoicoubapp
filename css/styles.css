@@ -1,0 +1,148 @@
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background-color: #c4cfa1;
+    color: #306230;
+    overscroll-behavior: none; /* Empêche le pull-to-refresh sur mobile */
+    touch-action: manipulation; /* Améliore la réactivité tactile */
+    -webkit-user-select: none; /* Empêche la sélection de texte sur iOS */
+    user-select: none; /* Empêche la sélection de texte sur les autres navigateurs */
+}
+
+.container {
+    width: 90%;
+    max-width: 500px;
+    text-align: center;
+    padding: 20px;
+}
+
+h1 {
+    color: #0f380f;
+    margin-bottom: 30px;
+    font-size: 2rem;
+}
+
+.status {
+    font-size: 18px;
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+.button {
+    background-color: #8bac0f;
+    color: white;
+    border: none;
+    padding: 18px 30px;
+    font-size: 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    min-width: 200px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    will-change: transform; /* Optimisation pour les animations */
+}
+
+.button:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.button.stop {
+    background-color: #ac0f0f;
+}
+
+.result-box {
+    background-color: white;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    min-height: 50px;
+}
+
+.instructions {
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: left;
+}
+
+.instructions h2 {
+    margin-top: 0;
+    color: #306230;
+}
+
+.instructions p {
+    margin: 10px 0;
+    color: #0f380f;
+    font-size: 16px;
+}
+
+@media (max-width: 480px) {
+    .container {
+        width: 95%;
+        padding: 15px;
+    }
+    
+    h1 {
+        font-size: 1.8rem;
+        margin-bottom: 20px;
+    }
+    
+    .button {
+        width: 90%;
+        font-size: 16px;
+        padding: 16px 10px;
+    }
+    
+    .instructions p {
+        font-size: 14px;
+        margin: 8px 0;
+    }
+}
+
+@keyframes buttonPress {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.98); }
+    100% { transform: scale(1); }
+}
+
+.button:active {
+    animation: buttonPress 0.2s;
+}
+
+.listening-indicator {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: red;
+    margin-left: 10px;
+    animation: pulse 1.5s infinite;
+    will-change: opacity, transform; /* Optimisation pour les animations */
+}
+
+@keyframes pulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.1); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+#currentSound {
+    font-size: 12px;
+    color: #555;
+    margin-top: 5px;
+}

@@ -6,9 +6,8 @@ yarn-error.log
 .pnp
 .pnp.js
 
-# Fichiers de build
+# Fichiers de build SAUF dist/ qui contient notre version optimisée
 build/
-dist/
 .next/
 out/
 .nuxt/
@@ -69,6 +68,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Fichiers temporaires
+*-backup.html
+*-temp.*
 
 # Autres
 .vercel

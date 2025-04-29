@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Quoicoubapp - Hybrid</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#306230">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="./assets/images/icon.png">
+    <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Quoicoubapp</h1>
+        
+        <div class="status" id="status">
+            En attente
+            <span id="indicator" class="listening-indicator" style="display: none;"></span>
+        </div>
+        
+        <div id="currentSound" style="display:none;"></div>
+        
+        <button class="button" id="listenButton">Commencer l'écoute</button>
+        
+        <p style="font-weight: bold; color: #306230; margin: 10px 0;">Mode automatique: arrêt de l'écoute lors de la détection d'un mot, lecture du son, puis reprise de l'écoute</p>
+        
+        <div class="result-box" id="result" style="display:none;"></div>
+        
+        <div class="instructions">
+            <h2>Instructions :</h2>
+            <p>1. Appuie sur "Commencer l'écoute"</p>
+            <p>2. Dis "Quoi ?" pour entendre "Quoicoubeh"</p>
+            <p>3. Dis "Hein ?" (ou un mot finissant par "in") pour entendre "Apanyan"</p>
+            <p>4. Dis "Pourquoi ?" pour entendre "Carabinga"</p>
+            <p>5. Dis "Comment ?" pour entendre "Commandant de bord"</p>
+            <p>6. Dis "Qui ?" pour entendre "Quiquiriqui"</p>
+            <p>7. Appuie sur "Arrêter l'écoute" quand tu as terminé</p>
+        </div>
+    </div>
+
+    <!-- Préchargement des sons audio -->
+    <div id="audioContainer" style="display:none;"></div>
+    
+    <script>
+        // Code hybride de Quoicoubapp - v1.2.0
+        (() => {
+            'use strict';
+            
+            // == CONFIGURATION ==
+            const CONFIG = {
+                // Mapping des mots-clés vers les sons
+                soundMapping: {
+                    'pourquoi': [
+                        './sounds/pourquoicarabinga/pourquoicarabinga.mp3'
+                    ],
+                    'qui': [
+                        './sounds/quiquiriqui/quiquiriqui1.mp3'
+                    ],
+                    'comment': [
+                        './sounds/commandantdebord/commandantdebord.mp3'
+                    ],
+                    'hein': [
+                        './sounds/apanyans/apanyan1.mp3',
+                        './sounds/apanyans/apanyan2.mp3',
+                        './sounds/apanyans/apanyan3.mp3',
+                        './sounds/apanyans/apanyan4.mp3',
+                        './sounds/apanyans/apanyan5.mp3',
+                        './sounds/apanyans/apanyan6.mp3',
+                        './sounds/apanyans/apanyan7.mp3',
+                        './sounds/apanyans/apanyan8.mp3',
+                        './sounds/apanyans/apanyan9.mp3',
+                        './sounds/apanyans/apanyan10.mp3'
+                    ],
+                    'quoi': [
+                        './sounds/quoicoubeh/quoicoubeh1.mp3',
+                        './sounds/quoicoubeh/quoicoubeh2.mp3',
+                        './sounds/quoicoubeh/quoicoubeh3.mp3',
+                        './sounds/quoicoubeh/quoicoubeh4.mp3',
+                        './sounds/quoicoubeh/quoicoubeh5.mp3',
+                        './sounds/quoicoubeh/quoicoubeh6.mp3',
+                        './sounds/quoicoubeh/quoicoubeh7.mp3'
+                    ]
+                },
+                
+                // Patterns de vibration
+                vibrationPatterns: {
+                    'pourquoi': [50, 50, 100],
+                    'qui': [50, 100, 50],
+                    'comment': [50, 100, 50],
+                    'hein': [100, 50, 50],
+                    'quoi': [50, 50, 50, 50]
+                }
+            };
+            
+            // == VARIABLES GLOBALES ==
+            let recognition = null;
+            let isListening = false;
+            let manuallyDisabled = false;
+            let isSoundPlaying = false;
+            let currentSound = null;
+            
+            // Éléments DOM
+            const elements = {
+                listenButton: document.getElementById('listenButton'),
+                statusElement: document.getElementById('status'),
+                resultElement: document.getElementById('result'),
+                indicatorElement: document.getElementById('indicator'),
+                currentSoundElement: document.getElementById('currentSound')
+            };
+            
+            // == FONCTIONS UTILITAIRES ==
+            
+            // Fonction de log
+            function log(message) {
+                console.log(`[Quoicoubapp] ${message}`);
+            }
+            
+            // Vibrer (si disponible)
+            function vibrate(pattern) {
+                if (navigator.vibrate) {
+                    navigator.vibrate(pattern);
+                }
+            }
+            
+            // Obtenir un son aléatoire pour un mot-clé
+            function getRandomSound(keyword) {
+                const sounds = CONFIG.soundMapping[keyword];
+                if (!Array.isArray(sounds) || sounds.length === 0) {
+                    return null;
+                }
+                
+                const randomIndex = Math.floor(Math.random() * sounds.length);
+                return sounds[randomIndex];
+            }
+            
+            // Mettre à jour l'interface lors de l'écoute
+            function updateListeningUI(isActive) {
+                if (isActive) {
+                    elements.statusElement.textContent = "Écoute en cours...";
+                    elements.indicatorElement.style.display = 'inline-block';
+                    elements.listenButton.textContent = "Arrêter l'écoute";
+                    elements.listenButton.classList.add('stop');
+                } else {
+                    elements.statusElement.textContent = "En attente";
+                    elements.indicatorElement.style.display = 'none';
+                    elements.listenButton.textContent = "Commencer l'écoute";
+                    elements.listenButton.classList.remove('stop');
+                }
+            }
+            
+            // Mettre à jour l'interface pour la lecture audio
+            function updateSoundUI(isPlaying, soundPath = null) {
+                if (isPlaying) {
+                    elements.statusElement.textContent = "Lecture du son en cours...";
+                    
+                    if (soundPath) {
+                        elements.currentSoundElement.textContent = `Son: ${soundPath}`;
+                        elements.currentSoundElement.style.display = 'block';
+                    }
+                } else {
+                    elements.currentSoundElement.style.display = 'none';
+                }
+            }
+            
+            // == GESTION AUDIO ==
+            
+            // Jouer un son
+            function playSound(keyword) {
+                if (isSoundPlaying) {
+                    log('Un son est déjà en lecture');
+                    return false;
+                }
+                
+                try {
+                    const soundPath = getRandomSound(keyword);
+                    if (!soundPath) {
+                        log(`Aucun son disponible pour: ${keyword}`);
+                        return false;
+                    }
+                    
+                    log(`Lecture du son: ${soundPath}`);
+                    isSoundPlaying = true;
+                    
+                    // Créer un élément audio
+                    const audio = new Audio(soundPath);
+                    currentSound = audio;
+                    
+                    // Configurer les événements
+                    audio.onended = handleSoundEnd;
+                    audio.onerror = handleSoundError;
+                    
+                    // Mettre à jour l'interface
+                    updateSoundUI(true, soundPath);
+                    
+                    // Jouer le son
+                    const playPromise = audio.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(error => {
+                            log('Erreur de lecture audio: ' + error);
+                            handleSoundError();
+                        });
+                    }
+                    
+                    return true;
+                } catch (error) {
+                    log('Erreur lors de la lecture du son: ' + error);
+                    handleSoundError();
+                    return false;
+                }
+            }
+            
+            // Gestionnaire de fin de son
+            function handleSoundEnd() {
+                log('Son terminé');
+                isSoundPlaying = false;
+                currentSound = null;
+                updateSoundUI(false);
+                
+                // Redémarrer l'écoute si non désactivée manuellement
+                if (!manuallyDisabled) {
+                    setTimeout(() => {
+                        startListening();
+                    }, 300);
+                }
+            }
+            
+            // Gestionnaire d'erreur de son
+            function handleSoundError() {
+                log('Erreur de lecture audio');
+                isSoundPlaying = false;
+                currentSound = null;
+                updateSoundUI(false);
+                
+                // Redémarrer l'écoute si non désactivée manuellement
+                if (!manuallyDisabled) {
+                    setTimeout(() => {
+                        startListening();
+                    }, 300);
+                }
+            }
+            
+            // == GESTION DE LA RECONNAISSANCE VOCALE ==
+            
+            // Détection des mots-clés
+            function detectKeyword(transcript) {
+                // Vérifier les mots-clés en ordre de priorité
+                if (transcript.includes('pourquoi')) {
+                    return 'pourquoi';
+                } else if (transcript.includes(' qui') || transcript === 'qui') {
+                    return 'qui';
+                } else if (transcript.includes('comment') && !transcript.includes('commandant')) {
+                    return 'comment';
+                } else if (
+                    transcript.includes('hein') || 
+                    transcript.includes('un') ||
+                    transcript.includes('ben') ||
+                    transcript.includes('1') ||
+                    /(\s|^)(\w+bah)(\s|$|\.|\?|\!)/i.test(transcript) ||
+                    /(\s|^)(fin|vin|lin|pin|brin|train|main|pain|plein|sein|frein|teint|daim|faim|rein|saint|grain|bain|gain|nain|bien|rien|chien|mien|tien|sien|loin|soin|coin|besoin|terrain|demain|lendemain|prochain|cousin|voisin|matin|malin|butin|poulain)(\s|$|\.|\?|\!)/i.test(transcript)
+                ) {
+                    return 'hein';
+                } else if (transcript.includes('quoi')) {
+                    return 'quoi';
+                }
+                return null;
+            }
+            
+            // Initialiser la reconnaissance vocale
+            function initRecognition() {
+                try {
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    recognition = new SpeechRecognition();
+                    
+                    // Configurations optimisées pour la réactivité
+                    recognition.continuous = true;
+                    recognition.interimResults = true; // Garder true pour plus de réactivité
+                    recognition.maxAlternatives = 1;
+                    recognition.lang = 'fr-FR';
+                    
+                    // Gestionnaires d'événements
+                    recognition.onresult = handleSpeechResult;
+                    recognition.onerror = handleSpeechError;
+                    recognition.onend = handleSpeechEnd;
+                    recognition.onaudiostart = () => {
+                        log('Capture audio démarrée');
+                    };
+                    
+                    return true;
+                } catch (error) {
+                    log("Erreur d'initialisation de la reconnaissance vocale: " + error);
+                    return false;
+                }
+            }
+            
+            // Gestionnaire de résultat de reconnaissance vocale
+            function handleSpeechResult(event) {
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const result = event.results[i];
+                    if (!result || result.length === 0) continue;
+                    
+                    const transcript = result[0].transcript.trim().toLowerCase();
+                    if (!transcript) continue;
+                    
+                    log(`Transcription: ${transcript}`);
+                    
+                    // Afficher la transcription en mode debug
+                    elements.resultElement.textContent = transcript;
+                    
+                    // Détecter le mot-clé
+                    const keyword = detectKeyword(transcript);
+                    if (keyword) {
+                        log(`Mot-clé détecté: ${keyword}`);
+                        
+                        // Arrêter l'écoute
+                        recognition.stop();
+                        isListening = false;
+                        updateListeningUI(false);
+                        
+                        // Feedback tactile
+                        vibrate(CONFIG.vibrationPatterns[keyword] || [50, 50]);
+                        
+                        // Jouer le son correspondant
+                        playSound(keyword);
+                        
+                        return; // Sortir après détection
+                    }
+                }
+            }
+            
+            // Gestionnaire d'erreur de reconnaissance vocale
+            function handleSpeechError(event) {
+                log("Erreur de reconnaissance vocale: " + event.error);
+                isListening = false;
+                updateListeningUI(false);
+                
+                // Redémarrer après un délai si nécessaire
+                if (!manuallyDisabled && !isSoundPlaying) {
+                    setTimeout(() => {
+                        startListening();
+                    }, 500);
+                }
+            }
+            
+            // Gestionnaire de fin de reconnaissance vocale
+            function handleSpeechEnd() {
+                log('Fin de session de reconnaissance vocale');
+                
+                // Redémarrer si nécessaire
+                if (isListening && !manuallyDisabled && !isSoundPlaying) {
+                    try {
+                        setTimeout(() => {
+                            recognition.start();
+                            log('Reconnaissance redémarrée');
+                        }, 200);
+                    } catch (error) {
+                        log('Erreur lors du redémarrage: ' + error);
+                        isListening = false;
+                        updateListeningUI(false);
+                    }
+                }
+            }
+            
+            // Démarrer l'écoute
+            function startListening() {
+                if (isListening || isSoundPlaying) return;
+                
+                try {
+                    if (!recognition && !initRecognition()) {
+                        return;
+                    }
+                    
+                    recognition.start();
+                    isListening = true;
+                    updateListeningUI(true);
+                    log('Reconnaissance vocale démarrée');
+                } catch (error) {
+                    log("Erreur de démarrage de la reconnaissance vocale: " + error);
+                    isListening = false;
+                    updateListeningUI(false);
+                }
+            }
+            
+            // Arrêter l'écoute
+            function stopListening() {
+                if (!isListening) return;
+                
+                try {
+                    recognition.stop();
+                    isListening = false;
+                    updateListeningUI(false);
+                    log('Reconnaissance vocale arrêtée');
+                } catch (error) {
+                    log("Erreur d'arrêt de la reconnaissance vocale: " + error);
+                    isListening = false;
+                    updateListeningUI(false);
+                }
+            }
+            
+            // == INITIALISATION DE L'APPLICATION ==
+            function initApp() {
+                // Désactiver le défilement sur les boutons tactiles
+                elements.listenButton.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                }, { passive: false });
+                
+                // Écouteur d'événement pour le bouton d'écoute
+                elements.listenButton.addEventListener('click', () => {
+                    vibrate(20); // Vibration courte au clic
+                    
+                    if (isListening) {
+                        manuallyDisabled = true;
+                        stopListening();
+                    } else {
+                        manuallyDisabled = false;
+                        
+                        if (!isSoundPlaying) {
+                            startListening();
+                        }
+                    }
+                });
+                
+                // Gérer les événements de visibilité
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) {
+                        if (isListening) {
+                            stopListening();
+                        }
+                    } else {
+                        if (!manuallyDisabled && !isSoundPlaying) {
+                            startListening();
+                        }
+                    }
+                });
+                
+                // Initialisation de la reconnaissance vocale
+                initRecognition();
+                
+                log('Application Quoicoubapp Hybride v1.2.0 initialisée');
+            }
+            
+            // Initialiser l'application au chargement
+            document.addEventListener('DOMContentLoaded', initApp);
+        })();
+    </script>
+</body>
+</html>

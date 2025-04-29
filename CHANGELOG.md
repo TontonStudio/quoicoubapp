@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.2.0 (29 avril 2025)
+
+### Optimisations de performance
+- Architecture modulaire avec séparation des responsabilités
+- Optimisation du système de reconnaissance vocale pour une détection plus rapide
+- Préchargement intelligent des sons pour réduire la latence
+- Gestion optimisée des ressources système (mise en pause/reprise automatique)
+- Version compilée unifiée pour des performances maximales en production
+
+### Améliorations techniques
+- Refonte de l'architecture avec des modules spécialisés
+- Système de cache audio multi-niveaux pour une meilleure réactivité
+- Réduction des délais de traitement entre les opérations
+- Compatibilité améliorée avec iOS et Android WebView
+- Script de compilation pour générer une version minifiée prête à l'emploi
+
+### Structure de fichiers
+- Organisation modulaire des fichiers JavaScript pour faciliter la maintenance
+- Version standard (index.html)
+- Version modulaire optimisée (index-modular.html)
+- Version compilée et minifiée (dist/index.html)
+
 ## v1.1.0 (28 avril 2025)
 
 ### Nouvelles fonctionnalités
@@ -56,6 +78,7 @@
 10. Correction des bugs de double détection
 11. Restructuration pour supporter la sélection aléatoire de sons multiples
 12. Optimisation pour la création d'APK via PWA Builder
+13. Restructuration modulaire et optimisations de performance
 
 ### Problèmes résolus
 - L'application détectait toujours "quoi" dans "pourquoi" → Résolu en inversant l'ordre des conditions
@@ -63,4 +86,5 @@
 - Le bouton "Arrêter l'écoute" ne fonctionnait pas correctement → Résolu avec la variable manuallyDisabled
 - Détection limitée pour "Hein ?" → Améliorée avec une liste de mots se terminant par un son nasal similaire
 - Demande d'autorisation répétée du microphone → Résolu en simplifiant la gestion des permissions
-- Lecture toujours des mêmes sons → Résolu avec un système de sélection aléatoire et listing explicite des sons disponibles
+- Lecture toujours des mêmes sons → Résolu avec un système de sélection aléatoire
+- Latence entre la détection et la lecture audio → Résolue avec préchargement optimisé et architecture modulaire

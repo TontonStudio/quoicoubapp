@@ -1,173 +1,182 @@
-# Documentation Technique - Quoicoubapp
+# Documentation Technique Quoicoubapp
 
-Ce document décrit les aspects techniques de l'application Quoicoubapp, une application web qui utilise la reconnaissance vocale pour détecter des mots-clés et jouer des sons amusants aléatoires en réponse.
+## Vue d'ensemble
 
-## Architecture de l'application
+Quoicoubapp est une application web qui utilise la reconnaissance vocale (Web Speech API) pour détecter des mots-clés spécifiques et jouer des sons amusants en réponse. L'application fonctionne entièrement côté client, sans dépendance serveur autre que pour servir les fichiers statiques.
 
-### Structure des fichiers
+## Architecture
+
+### Version 1.2.0+ (Architecture modulaire)
+
+La version 1.2.0 a été restructurée avec une architecture modulaire pour améliorer les performances et faciliter la maintenance :
 
 ```
 Quoicoubapp/
-├── index.html         # Page principale de l'application
-├── manifest.json      # Manifeste pour la fonctionnalité PWA
-├── sw.js              # Service Worker pour le fonctionnement hors ligne
-├── assets/
-│   └── images/        # Icônes et captures d'écran pour PWA
-│       ├── icon.png
-│       ├── adaptive-icon.png
-│       └── screenshot1.svg
-└── sounds/            # Dossiers contenant les sons par catégorie
-    ├── quoicoubeh/    # Sons pour "Quoi ?"
-    ├── apanyans/      # Sons pour "Hein ?"
-    ├── pourquoicarabinga/ # Sons pour "Pourquoi ?"
-    ├── commandantdebord/  # Sons pour "Comment ?"
-    └── quiquiriqui/   # Sons pour "Qui ?"
+├── css/
+│   └── styles.css            # Styles CSS séparés
+├── js/
+│   ├── config.js             # Configuration et constantes
+│   ├── audio-cache.js        # Système de préchargement audio
+│   ├── speech-manager.js     # Gestion de la reconnaissance vocale
+│   ├── sound-manager.js      # Lecture des sons
+│   ├── ui-manager.js         # Interface utilisateur
+│   └── app.js                # Point d'entrée et orchestration
+├── dist/                     # Version compilée et minifiée
+│   ├── index.html            # HTML optimisé
+│   ├── quoicoubapp.min.js    # JavaScript combiné et minifié
+│   └── styles.css            # CSS optimisé
+├── sounds/                   # Fichiers audio organisés par catégorie
+│   ├── apanyans/             # Sons pour "Hein ?"
+│   ├── commandantdebord/     # Sons pour "Comment ?"
+│   ├── pourquoicarabinga/    # Sons pour "Pourquoi ?"
+│   ├── quiquiriqui/          # Sons pour "Qui ?"
+│   └── quoicoubeh/           # Sons pour "Quoi ?"
+├── index.html                # Version standard
+├── index-modular.html        # Version avec architecture modulaire
+├── manifest.json             # Manifeste PWA
+└── sw.js                     # Service Worker pour le support hors ligne
 ```
 
-### Technologies utilisées
+### Communication entre les modules
 
-- **HTML/CSS/JavaScript vanilla** : Pas de framework ou bibliothèque externe
-- **Web Speech API** : Pour la reconnaissance vocale en continu
-- **Service Worker API** : Pour le fonctionnement hors ligne et la mise en cache
-- **Web App Manifest** : Pour la fonctionnalité PWA
+L'application utilise un modèle de communication basé sur les callbacks et les événements :
 
-## Fonctionnement principal
+1. `App` initialise les différents gestionnaires et configure les callbacks
+2. `SpeechManager` détecte les mots-clés et notifie `App` via callback
+3. `App` demande à `SoundManager` de jouer un son correspondant
+4. `SoundManager` notifie `App` lorsque la lecture est terminée
+5. `App` met à jour l'interface via `UIManager` et relance l'écoute
 
-### Reconnaissance vocale
+## Composants principaux
 
-L'application utilise l'API Web Speech (SpeechRecognition) pour écouter en continu les paroles de l'utilisateur. Voici le processus :
+### 1. Configuration (config.js)
 
-1. Initialisation de la reconnaissance vocale via `SpeechRecognition` ou `webkitSpeechRecognition`
-2. Configuration des options : `continuous: true`, `interimResults: true`
-3. Traitement des résultats avec l'événement `onresult`
-4. Analyse du texte pour détecter les mots-clés
-5. Arrêt temporaire de la reconnaissance lors de la détection d'un mot-clé
-6. Lecture du son correspondant
-7. Reprise automatique de la reconnaissance après la lecture
+Points clés :
+- Expressions régulières précompilées pour la détection des mots-clés
+- Mapping des mots-clés vers les fichiers audio
+- Paramètres de configuration pour la reconnaissance vocale
+- Gestion des délais et temporisations
 
-### Gestion des sons aléatoires
+### 2. Gestionnaire de cache audio (audio-cache.js)
 
-La sélection aléatoire des sons est gérée par un mécanisme de mapping explicite :
+Points clés :
+- Préchargement intelligent des fichiers audio
+- Cache à plusieurs niveaux pour réduire la latence
+- Chargement prioritaire des sons principaux
+- Chargement en arrière-plan des sons secondaires
 
-```javascript
-// Mapping des mots-clés vers les dossiers de sons
-const soundMapping = {
-    'quoi': 'quoicoubeh',
-    'hein': 'apanyans',
-    'pourquoi': 'pourquoicarabinga',
-    'comment': 'commandantdebord',
-    'qui': 'quiquiriqui'
-};
+### 3. Gestionnaire de reconnaissance vocale (speech-manager.js)
 
-// Définition des sons disponibles pour chaque mot-clé
-const availableSounds = {
-    'quoi': [
-        './sounds/quoicoubeh/quoicoubeh1.mp3',
-        './sounds/quoicoubeh/quoicoubeh2.mp3',
-        // etc.
-    ],
-    // autres catégories...
-};
+Points clés :
+- Initialisation optimisée de l'API Web Speech
+- Détection efficace des mots-clés avec expressions régulières
+- Gestion des erreurs et tentatives de reconnexion
+- Mécanisme anti-double détection
+
+### 4. Gestionnaire de sons (sound-manager.js)
+
+Points clés :
+- Lecture des sons depuis le cache
+- Sélection aléatoire des sons par catégorie
+- Gestion des événements de lecture audio
+- Prévention des lectures simultanées
+
+### 5. Gestionnaire de l'interface utilisateur (ui-manager.js)
+
+Points clés :
+- Mise à jour de l'état visuel de l'application
+- Gestion des retours tactiles (vibration)
+- Affichage des messages d'erreur
+- Interface réactive et adaptative
+
+### 6. Application principale (app.js)
+
+Points clés :
+- Orchestration des différents composants
+- Gestion du cycle de vie de l'application
+- Adaptation aux différents environnements (PWA, WebView)
+- Optimisation des ressources système
+
+## Version compilée
+
+Pour une performance maximale, l'application propose une version compilée et minifiée dans le dossier `dist/`. Cette version :
+
+1. Combine tous les fichiers JavaScript en un seul pour réduire les requêtes HTTP
+2. Minifie le code pour réduire la taille des fichiers
+3. Optimise les références pour un chargement plus rapide
+
+Pour générer cette version :
+```bash
+./combine-js.sh
 ```
 
-Lorsqu'un mot-clé est détecté, l'application :
-1. Identifie la catégorie de son correspondante
-2. Sélectionne un fichier aléatoire dans la liste des sons disponibles
-3. Charge et joue ce fichier audio
+## API Web Speech
 
-### Détection de mots-clés
+L'application utilise l'API Web Speech pour la reconnaissance vocale :
 
-La détection des mots-clés utilise différentes stratégies :
+- `SpeechRecognition` : Interface principale pour la reconnaissance
+- `continuous: true` : Permet une écoute continue
+- `interimResults: true` : Améliore la réactivité de détection
+- `maxAlternatives: 1` : Limite les résultats pour optimiser les performances
 
-1. **Vérification simple** pour "quoi", "pourquoi", "comment" et "qui" avec `includes()`
-2. **Expressions régulières** pour détecter les mots se terminant par les sons nasaux comme "in" :
-   ```javascript
-   /(\s|^)(bien|rien|fin|vin|...)(\s|$|\.|\?|\!)/i.test(transcript)
-   ```
-3. **Ordre de vérification important** : "pourquoi" est vérifié avant "quoi", et "qui" avant "quoi" pour éviter les faux positifs
+### Limitations et contraintes
 
-### Cycle d'écoute
+- Nécessite une connexion HTTPS ou localhost
+- Nécessite une autorisation d'accès au microphone
+- Performance variable selon les navigateurs (Chrome recommandé)
+- Sur iOS, nécessite une interaction utilisateur pour initialiser l'audio
 
-Le cycle complet d'interaction est le suivant :
-1. Démarrage de l'écoute (manuel via bouton ou automatique)
-2. Détection d'un mot-clé
-3. Arrêt temporaire de l'écoute
-4. Lecture du son aléatoire correspondant
-5. Reprise automatique de l'écoute après la fin du son
+## Sécurité
 
-## Fonctionnalités PWA
+- L'application fonctionne entièrement côté client
+- Pas de transmission de données à un serveur
+- Les autorisations microphone sont gérées par le navigateur
+- Le service worker ne met en cache que les ressources locales
 
-### Manifeste
+## Compatibilité
 
-Le fichier `manifest.json` définit :
-- Nom, description et icônes de l'application
-- Couleurs de thème et d'arrière-plan
-- Mode d'affichage (standalone)
-- Orientation préférée (portrait)
+L'application est compatible avec :
+- Chrome (Desktop et Android) - Support complet
+- Safari (iOS) - Support avec quelques limitations
+- Firefox - Support partiel
+- Edge - Support complet
 
-### Service Worker
+## Progressive Web App (PWA)
 
-Le service worker (`sw.js`) gère :
-- La mise en cache des ressources essentielles lors de l'installation
-- L'interception des requêtes réseau pour servir les fichiers depuis le cache
-- La mise en cache dynamique des nouvelles ressources
-- La gestion du mode hors ligne
+L'application est configurée comme une PWA :
+- Manifeste pour l'installation sur l'écran d'accueil
+- Service worker pour le fonctionnement hors ligne
+- Icons pour différentes résolutions
+- Thème et couleurs personnalisés
 
-## Comportement mobile et PWA
+## Performances
 
-### Adaptations mobiles
+La version 1.2.0 inclut plusieurs optimisations de performance :
+- Préchargement audio intelligent
+- Expressions régulières précompilées
+- Réduction des délais entre les opérations
+- Architecture modulaire efficace
+- Version compilée pour une performance maximale
 
-- Styles adaptatifs avec media queries pour les petits écrans
-- Gestion des interactions tactiles avec feedback haptique (vibrations)
-- Désactivation du défilement et du pull-to-refresh
-- Optimisations pour éviter les sélections de texte non désirées
+## Dépannage
 
-### Installation PWA
+### Problèmes courants
 
-L'application peut être installée comme une PWA sur :
-- Appareils Android via Chrome
-- iOS via Safari (ajout à l'écran d'accueil)
+1. **Le microphone n'est pas détecté** :
+   - Vérifier que l'autorisation est accordée dans les paramètres du navigateur
+   - Utiliser Chrome pour une meilleure compatibilité
+   - Vérifier que le site est servi en HTTPS ou depuis localhost
 
-### Création d'APK
+2. **Détection lente ou non réactive** :
+   - Utiliser la version compilée (dist/index.html) pour de meilleures performances
+   - Vérifier la qualité du microphone et le niveau sonore ambiant
+   - Essayer de parler plus distinctement et plus près du microphone
 
-Pour créer un APK Android à partir de cette PWA :
-1. Déployer l'application sur un serveur HTTPS
-2. Utiliser PWA Builder (https://www.pwabuilder.com/)
-3. Entrer l'URL de l'application
-4. Suivre les instructions pour générer l'APK
+3. **Sons qui ne se jouent pas** :
+   - Sur iOS, interagir d'abord avec l'interface pour débloquer l'audio
+   - Vérifier que les fichiers audio sont correctement placés dans les dossiers
+   - Vérifier le volume du système
 
-## Gestion des permissions
+## Licence
 
-### Microphone
-
-La permission du microphone est gérée de manière simplifiée pour éviter les demandes répétées :
-- L'application initialise directement la reconnaissance vocale sans vérification préalable
-- Le navigateur se charge de demander la permission si nécessaire
-- Une fois accordée, la permission est conservée pour les utilisations suivantes
-
-### Stratégie de gestion des erreurs
-
-Des gestionnaires d'erreurs sont implémentés pour :
-- Problèmes de permission du microphone
-- Erreurs de reconnaissance vocale
-- Problèmes de lecture audio
-- Changement de visibilité de l'application (pour économiser la batterie)
-
-## Optimisation des performances
-
-### Préchargement
-
-- Les éléments audio sont préchargés avec `preload="auto"`
-- Un test initial est effectué au démarrage pour vérifier la disponibilité des sons
-
-### Gestion des événements
-
-- Les gestionnaires d'événements sont optimisés pour éviter les fuites mémoire
-- Les écouteurs d'événements sont correctement nettoyés lors des changements d'état
-
-## Extensibilité
-
-L'architecture permet d'étendre facilement l'application :
-- Ajout de nouveaux sons dans les dossiers appropriés
-- Ajout de nouveaux mots-clés en étendant les objets `soundMapping` et `availableSounds`
-- Personnalisation des styles via CSS
+Voir le fichier [LICENSE](LICENSE) pour les détails.

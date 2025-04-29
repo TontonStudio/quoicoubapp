@@ -14,6 +14,17 @@ Une application web ludique qui écoute en permanence et réagit à certains mot
 - Cycle automatique : détection, arrêt de l'écoute, lecture du son, reprise de l'écoute
 - Interface minimaliste avec un seul bouton pour démarrer/arrêter l'écoute
 - Compatible PWA pour création d'APK via PWA Builder
+- Architecture modulaire pour de meilleures performances et maintenance
+
+## Versions disponibles
+
+L'application est disponible en trois versions :
+
+1. **Version standard** : La version originale (index.html)
+2. **Version modulaire** : Architecture optimisée (index-modular.html)
+3. **Version compilée** : Haute performance, un seul fichier JS (dist/index.html)
+
+Pour les appareils à faible puissance, la version compilée est recommandée.
 
 ## Comment ça marche
 
@@ -41,6 +52,17 @@ Une application web ludique qui écoute en permanence et réagit à certains mot
 2. Servez les fichiers via un serveur HTTP (pour le développement, vous pouvez utiliser Node.js avec `http-server` ou Python avec `python -m http.server`)
 3. Ouvrez l'application dans votre navigateur à l'adresse localhost
 
+### Compilation pour production
+
+Pour générer la version compilée à haute performance :
+
+```bash
+chmod +x combine-js.sh
+./combine-js.sh
+```
+
+Cela créera une version optimisée dans le dossier `dist/`.
+
 ## Ajouter de nouveaux sons
 
 Pour ajouter de nouveaux sons à l'application :
@@ -57,6 +79,19 @@ Pour ajouter de nouveaux sons à l'application :
    - `apanyan11.mp3`, `apanyan12.mp3`, etc.
 
 3. Les nouveaux sons seront automatiquement détectés et pourront être sélectionnés aléatoirement
+
+## Architecture technique
+
+La version optimisée (v1.2.0+) utilise une architecture modulaire :
+
+- **config.js** : Configuration globale de l'application
+- **audio-cache.js** : Gestion optimisée du préchargement audio
+- **speech-manager.js** : Reconnaissance vocale et détection des mots-clés
+- **sound-manager.js** : Lecture des sons avec cache multi-niveaux
+- **ui-manager.js** : Interface utilisateur réactive
+- **app.js** : Point d'entrée et orchestration des composants
+
+Voir [README-OPTIMISATION.md](README-OPTIMISATION.md) pour plus de détails techniques.
 
 ## Détection des mots-clés
 
